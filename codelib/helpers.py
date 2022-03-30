@@ -4,6 +4,7 @@ import pandas as pd
 import pandas_datareader as pdr
 import numpy as np
 from sklearn.decomposition import PCA
+import random
 
 def daily_return(start: str, end: str, tickers: list, dropna=True):
 
@@ -174,3 +175,39 @@ def mean_abs_error(observed, true):
     mabs = np.mean(abs_error)
     
     return mabs
+
+def simulate_asset_returns(mu: float, sigma: float, obs: int, n: int, seed=False):
+
+    if seed!=False:
+        np.random.seed(seed)
+
+    ret = np.random.normal(mu, sigma, size=(obs, n))
+
+    return ret
+
+
+
+def correlated_returns_with_shocks(mu, sigma, nObs, size, sigmaF, sLength):
+    
+    # original uncorrelated assets
+    orgSize = int(0.5 * size) # the number of original assets ~ half size of total number of assets
+    x = np.random.normal(mu, sigma, size=(nObs, orgSize))
+
+    # selecting random assets for correlation
+    corrAssets = [random.randint(0, orgSize-1) for i in range(orgSize)]
+
+    # creating new returns which are correlated with corrAssets
+    y = x[:, corrAssets] + np.random.normal(0, sigma*sigmaF, size = (nObs, len(corrAssets)))
+
+    # appending correlated returns to original returns
+    x = np.append(x, y, axis=1)
+
+    # random common shocks
+    point = np.random.randint(sLength, nObs-1, size=2)
+    x[np.ix_(point, [corrAssets[0], orgSize])] = np.array([[-.5, -.5], [2,2]])
+    
+    # random specific shock
+    point = np.random.randint(sLength, nObs-1,size=2)
+    x[point, corrAssets[-1]] = np.array([-.5,2])
+
+    return x
